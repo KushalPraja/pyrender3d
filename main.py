@@ -7,8 +7,6 @@ from render import render_cube
 def main():
     pg.init()
     screen = pg.display.set_mode((SCREEN_LENGTH, SCREEN_HEIGHT))
-
-    # 100 units back on z-axis
     camera_position = [0, 0, -100]
     render_cube(screen, camera_position)
 
