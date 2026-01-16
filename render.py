@@ -34,9 +34,11 @@ def render_cube(screen, camera_position, cube_width = 100):
     ]
 
     edges = [
-        (0, 1), (1, 2), (2, 3), (3, 0),
-        (4, 5), (5, 6), (6, 7), (7, 4),
-        (0, 4), (1, 5), (2, 6), (3, 7)
+        (0, 1), (1, 2), (2, 3), (3, 0), # back face
+        (4, 5), (5, 6), (6, 7), (7, 4), # front face
+        (0, 4), (1, 5), (2, 6), (3, 7),  # connecting edges
+        (0, 2), (3, 4), (5, 7), (1, 6), 
+        (0, 5), (3, 6)
     ]
 
     while running:
@@ -51,8 +53,7 @@ def render_cube(screen, camera_position, cube_width = 100):
                 running = False
         
         if pg.key.get_pressed()[pg.K_SPACE]:
-            print("space pressed")
-            running = False
+            camera_position[1] += 5
 
         if pg.key.get_pressed()[pg.K_w]:
             camera_position[2] += 5
@@ -114,7 +115,10 @@ def render_cube(screen, camera_position, cube_width = 100):
             if z > zBuffer[index]:
                 zBuffer[index] = z
                 pixel_buffer[index] = (255, 255, 255)  # white color for cube vertices
-      
+
+        fps = clock.get_fps()
+        text_surface = pg.font.SysFont("Arial", 18).render(f"FPS: {int(fps)}", True, (255, 255, 255))
+        screen.blit(text_surface, (10, 10))
 
         pg.display.flip()
         clock.tick(config.FPS)
