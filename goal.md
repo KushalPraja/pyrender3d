@@ -4,3 +4,6 @@ goal
 - we have to implement the Tait-Bryan angles for camera rotation
 
 - https://en.wikipedia.org/wiki/3D_projection
+
+
+-- implement 

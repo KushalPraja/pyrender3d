@@ -1,6 +1,7 @@
 import math
 import pygame as pg
 import config
+import numpy as np
 
 def render_cube(screen, camera_position, cube_width = 100):
 
@@ -10,43 +11,37 @@ def render_cube(screen, camera_position, cube_width = 100):
     clock = pg.time.Clock()
 
     array_len = width * height
-    
-    # z buffer to keep track of closest pixel at each position
-    zBuffer = [float('-inf')] * array_len
-
-    # pixel buffer to store color of each pixel
-    pixel_buffer = [(0, 0, 0)] * array_len
-
     distance_from_camera = 400
     fov = 45
+    near_clip = 10  # Near clipping plane
 
+    camera_angle = np.array([0.0, 0.0, 0.0])  # x, y, z 
     running = True
     
-    cube = [
-        [-cube_width, -cube_width, -cube_width],
-        [ cube_width, -cube_width, -cube_width],
-        [ cube_width,  cube_width, -cube_width],
-        [-cube_width,  cube_width, -cube_width],
-        [-cube_width, -cube_width,  cube_width],
-        [ cube_width, -cube_width,  cube_width],
-        [ cube_width,  cube_width,  cube_width],
-        [-cube_width,  cube_width,  cube_width],
-    ]
-
-    edges = [
-        (0, 1), (1, 2), (2, 3), (3, 0), # back face
-        (4, 5), (5, 6), (6, 7), (7, 4), # front face
-        (0, 4), (1, 5), (2, 6), (3, 7),  # connecting edges
-        (0, 2), (3, 4), (5, 7), (1, 6), 
-        (0, 5), (3, 6)
-    ]
-
-    while running:
-
-        #  screen = pg.display.set_mode((SCREEN_LENGTH, SCREEN_HEIGHT))
-        # camera_position = [0, 0, -100]
     
+    cube = np.array([
+        [-cube_width/2, -cube_width/2, -cube_width/2],  # 0
+        [ cube_width/2, -cube_width/2, -cube_width/2],  # 1
+        [ cube_width/2,  cube_width/2, -cube_width/2],  # 2
+        [-cube_width/2,  cube_width/2, -cube_width/2],  # 3
+        [-cube_width/2, -cube_width/2,  cube_width/2],  # 4
+        [ cube_width/2, -cube_width/2,  cube_width/2],  # 5
+        [ cube_width/2,  cube_width/2,  cube_width/2],  # 6
+        [-cube_width/2,  cube_width/2,  cube_width/2],  # 7
+    ])
 
+    triangles = np.array([
+        (0, 1, 2), (0, 2, 3),  # back face
+        (4, 5, 6), (4, 6, 7),  # front face
+        (0, 1, 5), (0, 5, 4),  # bottom face
+        (2, 3, 7), (2, 7, 6),  # top face
+        (1, 2, 6), (1, 6, 5),  # right face
+        (0, 3, 7), (0, 7, 4)   # left face
+    ])
+
+    show_wireframe: bool = True
+    
+    while running:
         #  event handling
         for event in pg.event.get():
             if event.type == pg.QUIT:
@@ -67,54 +62,98 @@ def render_cube(screen, camera_position, cube_width = 100):
         if pg.key.get_pressed()[pg.K_d]:
             camera_position[0] += 5
 
+        if pg.key.get_pressed()[pg.K_ESCAPE]:
+            running = False
+        
+        if pg.key.get_pressed()[pg.K_TAB]:
+            show_wireframe = not show_wireframe
+            pg.time.delay(200) 
+
+        if pg.key.get_pressed()[pg.K_LEFT]:
+            camera_angle[1] -= 2
+
+        if pg.key.get_pressed()[pg.K_RIGHT]:
+            camera_angle[1] += 2
+
+        if pg.key.get_pressed()[pg.K_UP]:
+            camera_angle[0] -= 2
+        
+        if pg.key.get_pressed()[pg.K_DOWN]:
+            camera_angle[0] += 2
 
         screen.fill((0, 0, 0))
-        # clear buffers 
-        zBuffer = [float('-inf')] * array_len
-        pixel_buffer = [(0, 0, 0)] * array_len
         
-        # render the cube verticels
+       
+        # Transform vertices to camera space
+        camera_space_points = []
 
-        projected_points = []
+        rotation_x = np.matrix([
+            [1, 0, 0],
+            [0, math.cos(math.radians(camera_angle[0])), -math.sin(math.radians(camera_angle[0]))],
+            [0, math.sin(math.radians(camera_angle[0])), math.cos(math.radians(camera_angle[0]))]
+        ])
+
+        rotation_y = np.matrix([
+            [math.cos(math.radians(camera_angle[1])), 0, math.sin(math.radians(camera_angle[1]))],
+            [0, 1, 0],
+            [-math.sin(math.radians(camera_angle[1])), 0, math.cos(math.radians(camera_angle[1]))]
+        ])
+
+        rotation_z = np.matrix([
+            [math.cos(math.radians(camera_angle[2])), -math.sin(math.radians(camera_angle[2])), 0],
+            [math.sin(math.radians(camera_angle[2])), math.cos(math.radians(camera_angle[2])), 0],
+            [0, 0, 1]
+        ])
+
+        rotation_matrix = rotation_x * rotation_y * rotation_z
 
         for coord in range(len(cube)):
-            
-            # for any world point we have to translate it relative to camera position
-            x = cube[coord][0] - camera_position[0]
+
+            # right-handed coordinate system
+            x = cube[coord][0] - camera_position[0] 
             y = cube[coord][1] - camera_position[1]
-            z = cube[coord][2] - camera_position[2]
+            z = cube[coord][2] - camera_position[2] 
 
-            if z <= 0:
-                z = 0.0001  # prevent division by zero or negative z values
+            point = np.matrix([[x, y, z]])
+            final_point = point * rotation_matrix
+            camera_space_points.append(final_point)
+        
+        # Process each triangle
+        for v1, v2, v3 in triangles:
+            p1 = camera_space_points[v1]
+            p2 = camera_space_points[v2]
+            p3 = camera_space_points[v3]
+            
+            if p1[0, 2] <= near_clip or p2[0, 2] <= near_clip or p3[0, 2] <= near_clip:
+                continue  
+            
+            projected = []
+            for point in [p1, p2, p3]:
+                x, y, z = point[0, 0], point[0, 1], point[0, 2]
+                x_proj = x * (distance_from_camera / z) * (fov / 90)
+                y_proj = y * (distance_from_camera / z) * (fov / 90)
 
-            x_proj = x * (distance_from_camera / z) * (fov / 90)
-            y_proj = y * (distance_from_camera / z) * (fov / 90)
+                # Convert to screen coordinates
+                x_proj = int(width / 2 + x_proj)
+                y_proj = int(height / 2 - y_proj)
+                projected.append((x_proj, y_proj, z))
 
-            # since our screen origin is at top left corner we have to adjust the projected coordinates map them to the center
-            x_proj = int(width / 2 + x_proj)
-            y_proj = int(height / 2 - y_proj)
+            
+            # Extract projected points
+            proj_p1, proj_p2, proj_p3 = projected
+            x1, y1, z1 = proj_p1
+            x2, y2, z2 = proj_p2
+            x3, y3, z3 = proj_p3
 
-            projected_points.append((x_proj, y_proj, z))
-
-        print(projected_points)
-        # this idea is that we connected the projected points with lines
-        for x, y in edges:
-            # p1 would be point 0 and p2 would be point 1
-            p1 = projected_points[x]
-            p2 = projected_points[y]
-
-            screen_x1, screen_y1, z1 = p1
-            screen_x2, screen_y2, z2 = p2
-
-            pg.draw.line(screen, (255, 255, 255), (screen_x1, screen_y1), (screen_x2, screen_y2))
-
-
-        # if within the screen bounds update z buffer and pixel buffer
-        index = y_proj * width + x_proj
-        if 0 <= x_proj < width and 0 <= y_proj < height:
-            if z > zBuffer[index]:
-                zBuffer[index] = z
-                pixel_buffer[index] = (255, 255, 255)  # white color for cube vertices
+            # Draw lines
+            if show_wireframe:
+                pg.draw.line(screen, (255, 255, 255), (x1, y1), (x2, y2))
+                pg.draw.line(screen, (255, 255, 255), (x2, y2), (x3, y3))
+                pg.draw.line(screen, (255, 255, 255), (x3, y3), (x1, y1))
+            
+            # Fill triangle based on depth
+            else: 
+                fill_triangle(screen, proj_p1, proj_p2, proj_p3, width, height)
 
         fps = clock.get_fps()
         text_surface = pg.font.SysFont("Arial", 18).render(f"FPS: {int(fps)}", True, (255, 255, 255))
@@ -126,8 +165,16 @@ def render_cube(screen, camera_position, cube_width = 100):
     pg.quit()
 
 
-        
+# barycentric triangle fill algorithm
+def fill_triangle(screen, p1, p2, p3, width, height):
+    x1, y1, z1 = p1 # point 1 in triangle
+    x2, y2, z2 = p2 # point 2 in triangle
+    x3, y3, z3 = p3 # point 3 in triangle
 
-        
+    if min(y1, y2, y3) > height - 1 or max(y1, y2, y3) < 0:
+        return  # Triangle is completely outside vertical bounds
 
-
+    if min(x1, x2, x3) > width - 1 or max(x1, x2, x3) < 0:
+        return  # Triangle is completely outside horizontal bounds
+    
+    pg.draw.polygon(screen, (100, 100, 255), [(x1, y1), (x2, y2), (x3, y3)], 0)
