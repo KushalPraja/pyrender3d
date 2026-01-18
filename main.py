@@ -25,6 +25,9 @@ def main():
         if keys[pg.K_SPACE]:
             camera.move('up', 5)
 
+        if keys[pg.K_LSHIFT]:
+            camera.move('down', 5)
+
         if keys[pg.K_w]:
             camera.move('forward', 5)
 
@@ -62,10 +65,13 @@ def main():
         fps = int(clock.get_fps())
         text_surface = pg.font.SysFont("Arial", 18).render(f"FPS: {fps}", True, (255, 255, 255))
         screen.blit(text_surface, (10, 10))
-        text_surface = pg.font.SysFont("Arial", 18).render(f"Camera Pos: {camera.get_position()}", True, (255, 255, 255))
+        text_surface = pg.font.SysFont("Arial", 18).render(f"Camera Pos: {camera.position}", True, (255, 255, 255))
         screen.blit(text_surface, (10, 30))
-        text_surface = pg.font.SysFont("Arial", 18).render(f"Camera Angle: {camera.get_angle()}", True, (255, 255, 255))
+        text_surface = pg.font.SysFont("Arial", 18).render(f"Camera Angle: {camera.angle}", True, (255, 255, 255))
         screen.blit(text_surface, (10, 50))
+        # get forward vector
+        text_surface = pg.font.SysFont("Arial", 18).render(f"Forward Vector: {camera.get_forward_vector()}", True, (255, 255, 255))
+        screen.blit(text_surface, (10, 70))
 
         pg.display.flip()
         clock.tick(FPS)

@@ -3,7 +3,6 @@ import pygame as pg
 import math
 import config
 
-
 class Cube:
     def __init__(self, size=50):
         s = size
@@ -61,7 +60,7 @@ class Cube:
 
         return cam_points
 
-# takes point and projects it to 2D screen coordinates
+# takes camera_space points and projects it to 2D screen coordinates
 def _project_point(point, width, height, distance_from_camera, fov):
     x, y, z = point[0], point[1], point[2]
     if z == 0:
@@ -72,12 +71,12 @@ def _project_point(point, width, height, distance_from_camera, fov):
     screen_y = int(height / 2 - y_proj)
     return (screen_x, screen_y, z)
 
-
+# fills triangles between projected points
 def render_frame(screen, cube_obj, camera, width, height, show_wireframe=True,
                  distance_from_camera=400, fov=45, near_clip=10):
     
-    cam_pos = camera.get_position()
-    cam_angle = camera.get_angle()
+    cam_pos = camera.position
+    cam_angle = camera.angle
     cam_points = cube_obj.camera_space_points(cam_pos, cam_angle)
 
     for v1, v2, v3 in cube_obj.triangles:
