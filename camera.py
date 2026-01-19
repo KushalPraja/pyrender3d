@@ -1,5 +1,5 @@
-import pygame as pg
 import math
+
 
 class Camera:
     def __init__(self):
@@ -11,40 +11,39 @@ class Camera:
     def move(self, direction, amount):
         directions = self.get_forward_vector()
         directions_left_right = self.get_right_vector()
-        if direction == 'up':
+        if direction == "up":
             self.position[1] += amount
-        elif direction == 'down':
+        elif direction == "down":
             self.position[1] -= amount
-        elif direction == 'forward':
+        elif direction == "forward":
             self.position[2] += directions[2] * amount
             self.position[0] -= directions[0] * amount
-        elif direction == 'backward':
+        elif direction == "backward":
             self.position[2] -= directions[2] * amount
             self.position[0] += directions[0] * amount
-        elif direction == 'left':
+        elif direction == "left":
             self.position[0] -= directions_left_right[0] * amount
             self.position[2] += directions_left_right[2] * amount
-        elif direction == 'right':
+        elif direction == "right":
             self.position[0] += directions_left_right[0] * amount
             self.position[2] -= directions_left_right[2] * amount
 
-
     def rotate(self, axis, amount):
-        if axis == 'pitch':
+        if axis == "pitch":
             if self.angle[0] + amount > 90:
                 self.angle[0] = 90
             elif self.angle[0] + amount < -90:
                 self.angle[0] = -90
             else:
                 self.angle[0] += amount
-        elif axis == 'yaw':
+        elif axis == "yaw":
             if self.angle[1] + amount > 360:
                 self.angle[1] = 0
             elif self.angle[1] + amount < 0:
                 self.angle[1] = 360
             else:
                 self.angle[1] += amount
-        elif axis == 'roll':
+        elif axis == "roll":
             if self.angle[2] + amount > 360:
                 self.angle[2] = 0
             elif self.angle[2] + amount < 0:
@@ -64,13 +63,13 @@ class Camera:
         if length == 0:
             return [0, 0, 0]
         return [x / length, y / length, z / length]
-    
+
     def get_right_vector(self):
         pitch = math.radians(self.angle[0])
         yaw = math.radians(self.angle[1] + 90)
 
-        x = math.cos(pitch) * math.sin(yaw) 
-        y = 0 
+        x = math.cos(pitch) * math.sin(yaw)
+        y = 0
         z = math.cos(pitch) * math.cos(yaw)
         length = math.sqrt(x**2 + y**2 + z**2)
         if length == 0:
