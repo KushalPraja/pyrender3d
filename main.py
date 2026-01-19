@@ -2,14 +2,31 @@ import pygame as pg
 from camera import Camera
 import config
 from config import SCREEN_LENGTH, SCREEN_HEIGHT, FPS
-from cube import Cube, render_frame
+from cube import Cube
+from render import Scene
 
 
 def main():
     pg.init()
     screen = pg.display.set_mode((SCREEN_LENGTH, SCREEN_HEIGHT))
     clock = pg.time.Clock()
-    cube = Cube()
+
+    scene = Scene()
+    # start with a small grid by default — increase when stable
+    def create_cube_grid(rows, cols, cube_half_size=6, gap=2, y=0):
+        spacing = cube_half_size * 2 + gap
+        offset_x = (cols - 1) * spacing / 2.0
+        offset_z = (rows - 1) * spacing / 2.0
+        for rz in range(rows):
+            for cx in range(cols):
+                x = cx * spacing - offset_x
+                z = rz * spacing - offset_z
+                c = Cube(size=cube_half_size, position=(x, y, z))
+                scene.add(c)
+
+    # moderate default: 20x20 grid = 400 cubes
+    create_cube_grid(20, 20, cube_half_size=6, gap=2, y=0)
+
     camera = Camera()
 
     show_wireframe = True
@@ -59,8 +76,13 @@ def main():
         if keys[pg.K_DOWN]:
             camera.rotate('pitch', -2)
 
+        mouse_dx, mouse_dy = pg.mouse.get_rel()
+        if pg.mouse.get_focused():
+            camera.rotate('yaw', -mouse_dx * 0.1)
+            camera.rotate('pitch', -mouse_dy * 0.1)
+
         screen.fill((0, 0, 0))
-        render_frame(screen, cube, camera, SCREEN_LENGTH, SCREEN_HEIGHT, show_wireframe)
+        scene.render(screen, camera, SCREEN_LENGTH, SCREEN_HEIGHT, show_wireframe, max_distance=250)
 
         fps = int(clock.get_fps())
         text_surface = pg.font.SysFont("Arial", 18).render(f"FPS: {fps}", True, (255, 255, 255))
